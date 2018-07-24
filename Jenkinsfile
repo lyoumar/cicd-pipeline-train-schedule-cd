@@ -8,29 +8,28 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
         }
-        
-        stage('DeployToStaging'){
+        stage('DeployToStaging') {
             when {
                 branch 'master'
             }
             steps {
-                withCredentials([usernamePassword(credentialsId:'webserser_login',usernameVariable:'USERNAME',passwordVariable:'USERPASS')]){
+                withCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS')]) {
                     sshPublisher(
                         failOnError: true,
-                        ContinueOnError: false,
+                        continueOnError: false,
                         publishers: [
                             sshPublisherDesc(
-                                configname: 'staging',
+                                configName: 'staging',
                                 sshCredentials: [
                                     username: "$USERNAME",
-                                    encryptedPassphrase: "$USERPASS",
-                                ],
+                                    encryptedPassphrase: "$USERPASS"
+                                ], 
                                 transfers: [
                                     sshTransfer(
                                         sourceFiles: 'dist/trainSchedule.zip',
                                         removePrefix: 'dist/',
                                         remoteDirectory: '/tmp',
-                                        execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/trainSchedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule',
+                                        execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/trainSchedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule'
                                     )
                                 ]
                             )
@@ -38,38 +37,38 @@ pipeline {
                     )
                 }
             }
-    
-        stage('DeployToProduction'){
+        }
+        stage('DeployToProduction') {
             when {
                 branch 'master'
             }
             steps {
-                input 'Does the Staging environnement looks ok? '
+                input 'Does the staging environment look OK?'
                 milestone(1)
-                withCredentials([usernamePassword(credentialsId:'webserser_login',usernameVariable:'USERNAME',passwordVariable:'USERPASS')]){
+                withCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS')]) {
                     sshPublisher(
                         failOnError: true,
-                        ContinueOnError: false,
+                        continueOnError: false,
                         publishers: [
                             sshPublisherDesc(
-                                configname: 'staging',
+                                configName: 'production',
                                 sshCredentials: [
                                     username: "$USERNAME",
-                                    encryptedPassphrase: "$USERPASS",
-                                ],
+                                    encryptedPassphrase: "$USERPASS"
+                                ], 
                                 transfers: [
                                     sshTransfer(
                                         sourceFiles: 'dist/trainSchedule.zip',
                                         removePrefix: 'dist/',
                                         remoteDirectory: '/tmp',
-                                        execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/trainSchedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule',
+                                        execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/trainSchedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule'
                                     )
                                 ]
                             )
                         ]
                     )
                 }
-            } 
+            }
         }
     }
 }

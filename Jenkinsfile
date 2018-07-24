@@ -8,5 +8,68 @@ pipeline {
                 archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
         }
+        
+        stage('DeployToStaging'){
+            when {
+                branch 'master'
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId:'webserser_login',usernameVariable:'USERNAME',passwordVariable:'USERPASS')]){
+                    sshPublisher(
+                        failOnError: true,
+                        ContinueOnError: false,
+                        publishers: [
+                            sshPublisherDesc(
+                                configname: 'staging',
+                                sshCredentials: [
+                                    username: "$USERNAME",
+                                    encryptedPassphrase: "$USERPASS",
+                                ],
+                                transfers: [
+                                    sshTransfer(
+                                        sourceFiles: 'dist/trainSchedule.zip',
+                                        removePrefix: 'dist/',
+                                        remoteDirectory: '/tmp',
+                                        execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/trainSchedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule',
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                }
+            }
+        //Line for Production
+        stage('DeployToProduction'){
+            when {
+                branch 'master'
+            }
+            steps {
+                input 'Does the Staging environnement looks ok? '
+                milestone(1)
+                withCredentials([usernamePassword(credentialsId:'webserser_login',usernameVariable:'USERNAME',passwordVariable:'USERPASS')]){
+                    sshPublisher(
+                        failOnError: true,
+                        ContinueOnError: false,
+                        publishers: [
+                            sshPublisherDesc(
+                                configname: 'staging',
+                                sshCredentials: [
+                                    username: "$USERNAME",
+                                    encryptedPassphrase: "$USERPASS",
+                                ],
+                                transfers: [
+                                    sshTransfer(
+                                        sourceFiles: 'dist/trainSchedule.zip',
+                                        removePrefix: 'dist/',
+                                        remoteDirectory: '/tmp',
+                                        execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/trainSchedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule',
+                                    )
+                                ]
+                            )
+                        ]
+                    )
+                }
+            } 
+        }
     }
 }
